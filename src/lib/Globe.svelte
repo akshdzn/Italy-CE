@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import * as THREE from 'three';
+    import italyData from '../italy.json';
 
     // Controls for the globe appearance (configure directly here or pass as props)
     let {
@@ -260,6 +261,85 @@
         const wireframeGlobe = new THREE.LineSegments(geometry, lineMaterial);
         globeGroup.add(wireframeGlobe);
 
+        // Setup places billboards from italy.json
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.crossOrigin = 'anonymous';
+
+        // Uniform random distribution on sphere surface
+        const getRandomSpherePoint = (r) => {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * 2.0 * Math.PI;
+            const phi = Math.acos(2.0 * v - 1.0);
+            const sinPhi = Math.sin(phi);
+            return new THREE.Vector3(
+                r * sinPhi * Math.cos(theta),
+                r * Math.cos(phi),
+                r * sinPhi * Math.sin(theta)
+            );
+        };
+
+        // Pick well-spaced random spots on the globe for each place
+        const randomSpots = [];
+        const minSeparation = 1.4; // minimum distance between spots on radius 2 sphere
+        for (let i = 0; i < italyData.length; i++) {
+            let candidate;
+            let attempts = 0;
+            while (attempts < 100) {
+                candidate = getRandomSpherePoint(radius);
+                const tooClose = randomSpots.some(p => p.distanceTo(candidate) < minSeparation);
+                if (!tooClose || attempts > 80) break;
+                attempts++;
+            }
+            randomSpots.push(candidate);
+        }
+
+        const billboards = [];
+
+        italyData.forEach((place, index) => {
+            // Invisible anchor point attached to the rotating globe
+            const point = new THREE.Object3D();
+            point.position.copy(randomSpots[index]);
+            globeGroup.add(point);
+
+            const item = {
+                point,
+                sprite: null,
+                texture: null,
+                material: null,
+                aspect: 1.4 // sensible default until image loads
+            };
+
+            if (place.globeImage) {
+                const texture = textureLoader.load(place.globeImage, (tex) => {
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                    tex.generateMipmaps = true;
+                    tex.minFilter = THREE.LinearMipmapLinearFilter;
+                    const img = tex.image;
+                    if (img && img.naturalWidth && img.naturalHeight) {
+                        item.aspect = img.naturalWidth / img.naturalHeight;
+                    } else if (img && img.width && img.height) {
+                        item.aspect = img.width / img.height;
+                    }
+                });
+
+                const material = new THREE.SpriteMaterial({
+                    map: texture,
+                    transparent: true,
+                    depthWrite: false
+                });
+
+                const sprite = new THREE.Sprite(material);
+                point.add(sprite);
+
+                item.sprite = sprite;
+                item.texture = texture;
+                item.material = material;
+            }
+
+            billboards.push(item);
+        });
+
         // Interaction state
         let isDragging = false;
         let prevMousePos = { x: 0, y: 0 };
@@ -340,12 +420,53 @@
 
         // Animation loop
         let animationFrameId;
+        const tempWorldPos = new THREE.Vector3();
+        const tempNormal = new THREE.Vector3();
+        const tempToCam = new THREE.Vector3();
+
         const animate = () => {
             animationFrameId = requestAnimationFrame(animate);
 
             // Update shader time for hand-drawn line boil
             if (lineMaterial && lineMaterial.uniforms) {
                 lineMaterial.uniforms.time.value = clock.getElapsedTime();
+            }
+
+            // Update billboard sizes according to their position on the globe
+            const viewHeight = container.clientHeight || height || 600;
+            const fovRad = THREE.MathUtils.degToRad(camera.fov);
+
+            for (const item of billboards) {
+                if (!item.sprite) continue;
+
+                // World position of the invisible anchor point on the globe
+                item.point.getWorldPosition(tempWorldPos);
+
+                // Normal on the sphere surface (sphere centered at 0, 0, 0)
+                tempNormal.copy(tempWorldPos).normalize();
+
+                // Vector from the point on the globe towards the camera
+                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+
+                // Dot product: 1.0 at front face (facing camera), -1.0 at back face
+                const dot = tempNormal.dot(tempToCam);
+
+                // Interpolate from 0.0 (backface) to 1.0 (front face)
+                const t = THREE.MathUtils.clamp((dot + 1.0) * 0.5, 0.0, 1.0);
+
+                // Vary size: 20px on backface, full (~200px) on front face
+                const targetPxHeight = THREE.MathUtils.lerp(20, 200, t);
+
+                // Vary opacity: 10% on backface, 100% on front face
+                item.material.opacity = THREE.MathUtils.lerp(0, 1.0, t);
+
+                // Convert target pixel height to world height for perspective camera
+                const dist = camera.position.distanceTo(tempWorldPos);
+                const frustumHeight = 2.0 * dist * Math.tan(fovRad * 0.5);
+                const worldHeight = (targetPxHeight / viewHeight) * frustumHeight;
+                const worldWidth = worldHeight * item.aspect;
+
+                item.sprite.scale.set(worldWidth, worldHeight, 1.0);
             }
 
             if (!isDragging) {
@@ -380,6 +501,10 @@
 
             geometry.dispose();
             lineMaterial.dispose();
+            for (const item of billboards) {
+                if (item.texture) item.texture.dispose();
+                if (item.material) item.material.dispose();
+            }
             renderer.dispose();
             if (renderer.domElement && renderer.domElement.parentNode) {
                 renderer.domElement.parentNode.removeChild(renderer.domElement);
