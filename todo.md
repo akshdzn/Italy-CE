@@ -1,0 +1,7 @@
+- [x] Globe Base + Images
+- [ ] Tooltip and hover interaction for globe images
+- [ ] Place pages 
+- [ ] Stamp system
+- [ ] CTA button
+- [ ] Italian Time widget 
+- [ ] landing animation
