@@ -1,11 +1,9 @@
 <script>
-    import Globe from './lib/Globe.svelte';
     import LandingPage from './lib/Landing_Page.svelte';
 </script>
 
 <main>
     <LandingPage />
-    <!-- <Globe /> -->
 </main>
 
 <style>

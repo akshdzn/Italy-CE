@@ -78,7 +78,7 @@
       "The city is renowned for its iconic flat-bottomed gondolas and centuries-old Venetian Gothic and Byzantine architecture.",
       "It is also globally famous for its vibrant artistic traditions, particularly Carnival celebrations and delicate hand-blown Murano glass."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1770037367722-5444567fcb52?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1553342385-111fd6bc6ab3?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Florence",
@@ -87,7 +87,7 @@
       "Its historic center is dominated by Brunelleschi’s massive terracotta dome atop the Florence Cathedral (the Duomo)",
       "The city houses world-famous artistic masterpieces, including Michelangelo’s David and Botticelli’s The Birth of Venus."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1776377231754-d36928e6ee4d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1764377847717-9410b8d70cb4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Rome",
@@ -96,7 +96,7 @@
       "Ancient monuments like the Colosseum and the Roman Forum stand seamlessly integrated alongside bustling modern streets.",
       "It encloses Vatican City, the world's smallest independent state and the global heart of the Catholic Church."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1529154166925-574a0236a4f4?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1396&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Milan",
@@ -105,7 +105,7 @@
       "As Italy's financial and business centre Milan is also famous for its fierce football rivalry between AC Milan and Inter Milan",
       "Leonardo Da Vinci's famous 15th century mural The last supper is housed in the city's Convent of Santa Maria Delle Grazie"
     ],
-    "globeImage": "https://images.unsplash.com/photo-1513581166391-887a96ddeafd?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1766952768072-2982f1ca7e77?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Naples",
@@ -114,7 +114,7 @@
       "Universally recognized as the birthplace of traditional wood-fired pizza and rich espresso culture.",
       "Set against the dramatic backdrop of Mount Vesuvius and the ancient ruins of Pompeii and Herculaneum."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1590663964384-e3bfac60bed7?q=80&w=736&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1655480259894-cdcbb11b900f?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Amalfi Coast",
@@ -123,7 +123,7 @@
       "Recognized as a UNESCO World Heritage site known for fragrant lemon groves, hidden coves, and scenic coastal highways.",
       "Iconic towns like Positano, Amalfi, and Ravello have enchanted artists, writers, and travelers for generations."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1612698093158-e07ac200d44e?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1783185433581-4b9ba9ae20cb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Bologna",
@@ -132,7 +132,7 @@
       "Home to the University of Bologna, established in 1088 and celebrated as the oldest continuously operating university in the world.",
       "Characterized by medieval towers and over 40 kilometers of elegant terracotta porticoes lining the city center."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1635469019177-7264fc1e013c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1586153981036-934c877e8a93?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   },
   {
     "name": "Palermo",
@@ -141,6 +141,6 @@
       "Famous for its bustling, vibrant street markets like Ballarò, Vucciria, and Il Capo offering celebrated Sicilian street food.",
       "Home to architectural masterpieces including the Palatine Chapel, the grand Palermo Cathedral, and Teatro Massimo."
     ],
-    "globeImage": "https://images.unsplash.com/photo-1618048558171-8c9edde77055?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+    "globeImage": "https://images.unsplash.com/photo-1618048814407-4a1e56a2217c?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
   }
 ]

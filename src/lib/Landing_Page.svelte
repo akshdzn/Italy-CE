@@ -1,12 +1,38 @@
-<link rel="stylesheet" href="Landing_Page.css">
-<video autoplay muted loop playsinline id="bg-video">
-  <source src="/Landing_Page.mp4" type="video/mp4">
-  Your browser does not support HTML5 video.
-</video>
-<div class="Title"><h1>The Italian Atelier</h1></div>
+<script>
+    import Globe from './Globe.svelte';
+
+    let isDisabled = false;
+</script>
+
+<div class="container">
+    <link rel="stylesheet" href="Landing_Page.css">
+    <video autoplay muted loop playsinline id="bg-video">
+      <source src="/Landing_Page.mp4" type="video/mp4">
+      Your browser does not support HTML5 video.
+    </video>
+    <div class="Title"><h1>The Italian Atelier</h1></div>
+</div>
+
+<div class="globe">
+    <Globe />
+</div>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Italianno&display=swap');
+    .container {
+        &.disable {
+            display: none;
+        }
+        z-index: 100;
+    }
+
+    .globe {
+        &.disable {
+            display: block;
+        }
+        display: none;
+    }
+
     * {
       margin: 0;
       padding: 0;
