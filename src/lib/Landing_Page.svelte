@@ -76,5 +76,20 @@
         position:center;
         margin-top:10px;
     }
-    }
+  }
+    .Globe{
+        position: absolute;
+        top: 87%;
+        left: 69%;
+        font-size: 40px;
+        transform: translate(-50%, -50%);
+        padding: 5px 12px;
+        border: 1px solid black;
+        border-radius: 40px;
+        background: rgba(255, 255, 255, 0.08);
+         backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        color: white;
+        white-space: nowrap;
+        text-decoration:none;}
 </style>
