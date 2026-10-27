@@ -1,10 +1,12 @@
 <script>
     import Globe from './Globe.svelte';
 
-    let isDisabled = false;
+    let isDisabled = "enable";
 </script>
 
-<div class="container">
+<div class={`container ${isDisabled}`} onclick={() => {
+  isDisabled = "disable";
+}}>
     <link rel="stylesheet" href="Landing_Page.css">
     <video autoplay muted loop playsinline id="bg-video">
       <source src="/Landing_Page.mp4" type="video/mp4">
@@ -13,7 +15,7 @@
     <div class="Title"><h1>The Italian Atelier</h1></div>
 </div>
 
-<div class="globe">
+<div class={`globe ${isDisabled}`}>
     <Globe />
 </div>
 
@@ -27,6 +29,8 @@
     }
 
     .globe {
+        width: 100dvw;
+        height: 100dvh;
         &.disable {
             display: block;
         }
