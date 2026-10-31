@@ -1,99 +1,152 @@
 <script>
     import Globe from './Globe.svelte';
-
-    let isDisabled = "enable";
 </script>
 
-<div class={`container ${isDisabled}`} onclick={() => {
-  isDisabled = "disable";
-}}>
-    <link rel="stylesheet" href="Landing_Page.css">
-    <video autoplay muted loop playsinline id="bg-video">
-      <source src="/Landing_Page.mp4" type="video/mp4">
-      Your browser does not support HTML5 video.
-    </video>
-    <div class="Title"><h1>The Italian Atelier</h1></div>
-</div>
+<div class="landing-page">
+    <div class="landscape">
+        <img src="/italian-landscape.png" alt="Italian Landscape" />
+        <div class="landscape-overlay"></div>
+    </div>
 
-<div class={`globe ${isDisabled}`}>
-    <Globe />
+    <div class="globe-wrapper">
+        <Globe />
+    </div>
+
+    <div class="left-top">
+        <div class="title-row">
+            <h1 class="title">The Italian Atelier</h1>
+            <img class="flag" src="/flag.png" alt="Italy Flag" />
+        </div>
+        <p class="quote">“Crafted journeys through Italy, stitched together one unforgettable moment at a time.”</p>
+        <p class="instruction">Click on a place on the globe to explore more about it</p>
+    </div>
+
+    <div class="right-top">
+        <span class="time">12:30 PM</span>
+        <span class="time-label">Italian Time</span>
+    </div>
 </div>
 
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Italianno&display=swap');
-    .container {
-        &.disable {
-            display: none;
-        }
-        z-index: 100;
-    }
-
-    .globe {
-        width: 100dvw;
-        height: 100dvh;
-        &.disable {
-            display: block;
-        }
-        display: none;
-    }
-
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+        box-sizing: border-box;
+        font-family: "EB Garamond", serif;
     }
-    #bg-video {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      z-index: -100;
+
+    .landing-page {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        background-color: #ffffff;
+        overflow: hidden;
+        font-family: sans-serif;
     }
-    .content {
-      position: relative;
-      z-index: 1;
-      color: white;
-      text-align: center;
-      margin-top: 40vh;
-    }
-    .Title{
+
+    .landscape {
         position: absolute;
-        top: 75%;
-        left: 65%;
-        transform: translate(-50%, -50%);
-        padding: 5px 12px;
-        border: 1px solid black;
-        border-radius: 40px;
-        background: rgba(255, 255, 255, 0.08);
-         backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-        white-space: nowrap;
-    h1{
-        font-family: 'Italianno', cursive;
-        font-size: 96px;
-        font-weight: normal;
-        color: white;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 50%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .landscape img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .landscape-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    .globe-wrapper {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+    }
+
+    .left-top {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        width: 234px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 3;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .title {
+        font-size: 24px;
+        font-weight: 400;
+        color: #000000;
         margin: 0;
-        line-height: 1.1;
-        position:center;
-        margin-top:10px;
+        line-height: 1.2;
     }
-  }
-    .Globe{
+
+    .flag {
+        width: 30px;
+        height: 20px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .quote {
+        font-size: 14px;
+        font-weight: 400;
+        color: #000000;
+        opacity: 0.8;
+        line-height: 1.4;
+        margin: 0;
+    }
+
+    .instruction {
+        font-size: 14px;
+        font-weight: 400;
+        color: #000000;
+        opacity: 0.8;
+        line-height: 1.4;
+        margin: 0;
+    }
+
+    .right-top {
         position: absolute;
-        top: 87%;
-        left: 69%;
-        font-size: 40px;
-        transform: translate(-50%, -50%);
-        padding: 5px 12px;
-        border: 1px solid black;
-        border-radius: 40px;
-        background: rgba(255, 255, 255, 0.08);
-         backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-        color: white;
-        white-space: nowrap;
-        text-decoration:none;}
+        top: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        z-index: 3;
+    }
+
+    .time {
+        font-size: 24px;
+        font-weight: 400;
+        color: #000000;
+        text-align: right;
+        line-height: 1.2;
+    }
+
+    .time-label {
+        font-size: 14px;
+        font-weight: 400;
+        color: #000000;
+        opacity: 0.8;
+        text-align: right;
+        line-height: 1.4;
+    }
 </style>
