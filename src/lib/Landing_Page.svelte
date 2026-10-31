@@ -8,8 +8,10 @@
         <div class="landscape-overlay"></div>
     </div>
 
-    <div class="globe-wrapper">
-        <Globe />
+    <div class="globe-pos">
+        <div class="globe-wrapper">
+            <Globe />
+        </div>
     </div>
 
     <div class="left-top">
@@ -65,11 +67,20 @@
         background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
     }
 
-    .globe-wrapper {
+    .globe-pos {
         position: absolute;
-        inset: 0;
         width: 100%;
         height: 100%;
+        z-index: 3;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .globe-wrapper {
+        inset: 0;
+        width: 80%;
+        height: 80%;
         z-index: 2;
     }
 
