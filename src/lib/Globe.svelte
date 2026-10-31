@@ -279,9 +279,6 @@
             );
         };
 
-        // Surface radius sits slightly above the wireframe sphere to wrap cleanly on top
-        const surfaceRadius = radius + 0.02;
-
         // Pick well-spaced random spots on the globe for each place
         const randomSpots = [];
         const minSeparation = 1.4; // minimum distance between spots on radius 2 sphere
@@ -289,7 +286,7 @@
             let candidate;
             let attempts = 0;
             while (attempts < 100) {
-                candidate = getRandomSpherePoint(surfaceRadius);
+                candidate = getRandomSpherePoint(radius);
                 const tooClose = randomSpots.some(p => p.distanceTo(candidate) < minSeparation);
                 if (!tooClose || attempts > 80) break;
                 attempts++;
@@ -297,25 +294,16 @@
             randomSpots.push(candidate);
         }
 
-        // Shared subdivided geometry to allow smooth spherical curvature
-        const billboardGeometry = new THREE.PlaneGeometry(1, 1, 32, 32);
         const billboards = [];
 
-        const upVec = new THREE.Vector3(0, 1, 0);
-        const zAxis = new THREE.Vector3();
-        const xAxis = new THREE.Vector3();
-        const yAxis = new THREE.Vector3();
-        const rotMatrix = new THREE.Matrix4();
-
         italyData.forEach((place, index) => {
-            // Anchor point attached to the rotating globe to track position
+            // Invisible anchor point attached to the rotating globe
             const point = new THREE.Object3D();
             point.position.copy(randomSpots[index]);
             globeGroup.add(point);
 
             const item = {
                 point,
-                mesh: null,
                 sprite: null,
                 texture: null,
                 material: null,
@@ -335,64 +323,16 @@
                     }
                 });
 
-                // Curved shader material projecting flat tangent quad onto the spherical surface
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        map: { value: texture },
-                        uSize: { value: new THREE.Vector2(0.5, 0.5) },
-                        uRadius: { value: surfaceRadius },
-                        uOpacity: { value: 1.0 }
-                    },
-                    vertexShader: `
-                        uniform vec2 uSize;
-                        uniform float uRadius;
-                        varying vec2 vUv;
-
-                        void main() {
-                            vUv = uv;
-
-                            // Flat local tangent coordinates in world units
-                            float bx = position.x * uSize.x;
-                            float by = position.y * uSize.y;
-                            float bR = uRadius;
-
-                            // Distance from globe center (0, 0, -bR) to flat point (bx, by, 0)
-                            float bL = sqrt(bx * bx + by * by + bR * bR);
-
-                            // Project onto sphere surface of radius bR
-                            vec3 curvedPos = vec3(
-                                (bR / bL) * bx,
-                                (bR / bL) * by,
-                                bR * (bR / bL - 1.0)
-                            );
-
-                            vec4 mvPosition = modelViewMatrix * vec4(curvedPos, 1.0);
-                            gl_Position = projectionMatrix * mvPosition;
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform sampler2D map;
-                        uniform float uOpacity;
-                        varying vec2 vUv;
-
-                        void main() {
-                            vec4 texColor = texture2D(map, vUv);
-                            texColor.a *= uOpacity;
-                            if (texColor.a < 0.005) discard;
-                            gl_FragColor = texColor;
-                            #include <colorspace_fragment>
-                        }
-                    `,
+                const material = new THREE.SpriteMaterial({
+                    map: texture,
                     transparent: true,
-                    depthWrite: false,
-                    side: THREE.DoubleSide
+                    depthWrite: false
                 });
 
-                const mesh = new THREE.Mesh(billboardGeometry, material);
-                scene.add(mesh);
+                const sprite = new THREE.Sprite(material);
+                point.add(sprite);
 
-                item.mesh = mesh;
-                item.sprite = mesh;
+                item.sprite = sprite;
                 item.texture = texture;
                 item.material = material;
             }
@@ -481,6 +421,7 @@
         // Animation loop
         let animationFrameId;
         const tempWorldPos = new THREE.Vector3();
+        const tempNormal = new THREE.Vector3();
         const tempToCam = new THREE.Vector3();
 
         const animate = () => {
@@ -491,29 +432,33 @@
                 lineMaterial.uniforms.time.value = clock.getElapsedTime();
             }
 
-            // Maintain constant billboard size on screen across all positions and keep upright
-            const targetPxHeight = 160;
+            // Update billboard sizes according to their position on the globe
             const viewHeight = container.clientHeight || height || 600;
             const fovRad = THREE.MathUtils.degToRad(camera.fov);
 
             for (const item of billboards) {
-                if (!item.mesh) continue;
+                if (!item.sprite) continue;
 
-                // World position of the anchor point on the globe
+                // World position of the invisible anchor point on the globe
                 item.point.getWorldPosition(tempWorldPos);
-                item.mesh.position.copy(tempWorldPos);
 
-                // Orient billboard so surface normal curves on the globe and top is always upright on screen
-                zAxis.copy(tempWorldPos).normalize();
-                if (Math.abs(zAxis.y) < 0.999) {
-                    xAxis.crossVectors(upVec, zAxis).normalize();
-                    yAxis.crossVectors(zAxis, xAxis).normalize();
-                } else {
-                    xAxis.set(1, 0, 0);
-                    yAxis.crossVectors(zAxis, xAxis).normalize();
-                }
-                rotMatrix.makeBasis(xAxis, yAxis, zAxis);
-                item.mesh.quaternion.setFromRotationMatrix(rotMatrix);
+                // Normal on the sphere surface (sphere centered at 0, 0, 0)
+                tempNormal.copy(tempWorldPos).normalize();
+
+                // Vector from the point on the globe towards the camera
+                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+
+                // Dot product: 1.0 at front face (facing camera), -1.0 at back face
+                const dot = tempNormal.dot(tempToCam);
+
+                // Interpolate from 0.0 (backface) to 1.0 (front face)
+                const t = THREE.MathUtils.clamp((dot + 1.0) * 0.5, 0.0, 1.0);
+
+                // Vary size: 20px on backface, full (~200px) on front face
+                const targetPxHeight = THREE.MathUtils.lerp(20, 200, t);
+
+                // Vary opacity: 10% on backface, 100% on front face
+                item.material.opacity = THREE.MathUtils.lerp(0, 1.0, t);
 
                 // Convert target pixel height to world height for perspective camera
                 const dist = camera.position.distanceTo(tempWorldPos);
@@ -521,19 +466,7 @@
                 const worldHeight = (targetPxHeight / viewHeight) * frustumHeight;
                 const worldWidth = worldHeight * item.aspect;
 
-                // Fade opacity from 1.0 (100% in front) to 0.0 (0% in back)
-                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
-                const dot = zAxis.dot(tempToCam);
-                const opacity = THREE.MathUtils.clamp((dot + 1.0) * 0.5, 0.0, 1.0);
-
-                if (item.material && item.material.uniforms) {
-                    if (item.material.uniforms.uSize) {
-                        item.material.uniforms.uSize.value.set(worldWidth, worldHeight);
-                    }
-                    if (item.material.uniforms.uOpacity) {
-                        item.material.uniforms.uOpacity.value = opacity;
-                    }
-                }
+                item.sprite.scale.set(worldWidth, worldHeight, 1.0);
             }
 
             if (!isDragging) {
@@ -567,10 +500,8 @@
             window.removeEventListener('pointercancel', onPointerUp);
 
             geometry.dispose();
-            billboardGeometry.dispose();
             lineMaterial.dispose();
             for (const item of billboards) {
-                if (item.mesh) scene.remove(item.mesh);
                 if (item.texture) item.texture.dispose();
                 if (item.material) item.material.dispose();
             }
