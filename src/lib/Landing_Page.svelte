@@ -1,5 +1,16 @@
 <script>
     import Globe from './Globe.svelte';
+    import InfoHover from './InfoHover.svelte';
+
+    let selectedPlace = $state(null);
+
+    function handlePlaceClick(place) {
+        selectedPlace = place;
+    }
+
+    function handleBack() {
+        selectedPlace = null;
+    }
 </script>
 
 <div class="landing-page">
@@ -10,9 +21,13 @@
 
     <div class="globe-pos">
         <div class="globe-wrapper">
-            <Globe />
+            <Globe onplaceclick={handlePlaceClick} />
         </div>
     </div>
+
+    {#if selectedPlace}
+        <InfoHover place={selectedPlace} onback={handleBack} />
+    {/if}
 
     <div class="left-top">
         <div class="title-row">

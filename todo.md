@@ -1,6 +1,6 @@
 - [x] Globe Base + Images
 - [x] Tooltip and hover interaction for globe images
-- [ ] Place pages 
+- [x] Place pages (InfoHover) 
 - [ ] Stamp system
 - [ ] CTA button
 - [ ] Italian Time widget 

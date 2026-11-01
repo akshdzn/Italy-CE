@@ -3,28 +3,40 @@
     import * as THREE from 'three';
     import italyData from '../italy.json';
     import ToolTip from './ToolTip.svelte';
+    import InfoHover from './InfoHover.svelte';
 
     // Controls for the globe appearance (configure directly here or pass as props)
     let {
         globeColor = "#e0e0e0",
         wiggleSize = 0.2,        // Controls the amplitude / size of the squiggles (0 = smooth, 1.0 = standard handdrawn, >1 = larger wiggles)
         wiggleTurbulence = 1.0,  // Controls the frequency / turbulence of the squiggles (higher = denser, shakier squiggles)
-        wiggleSpeed = 1.0        // Controls the speed of the hand-drawn line boil / shake animation (0 = static sketch)
+        wiggleSpeed = 1.0,       // Controls the speed of the hand-drawn line boil / shake animation (0 = static sketch)
+        onplaceclick
     } = $props();
 
     let container = $state();
     let lineMaterial;
 
-    // Tooltip state
+    // Tooltip and Place Selection state
     let tooltipVisible = $state(false);
     let tooltipName = $state('');
     let tooltipX = $state(0);
     let tooltipY = $state(0);
     let isDragging = $state(false);
+    let internalSelectedPlace = $state(null);
 
     let hoveredItem = null;
     let billboards = [];
     let updateTooltipCoords = null;
+
+    function handlePlaceClick(place) {
+        removeToolTip();
+        if (onplaceclick) {
+            onplaceclick(place);
+        } else {
+            internalSelectedPlace = place;
+        }
+    }
 
     export function callToolTip(name) {
         tooltipName = name;
@@ -378,6 +390,9 @@
         let mouseInside = false;
 
         let prevMousePos = { x: 0, y: 0 };
+        let pointerDownPos = { x: 0, y: 0 };
+        let pointerDownTime = 0;
+        let lastHoveredBeforeDown = null;
         let velocityX = 0;
         let velocityY = 0;
         let lastMoveTime = 0;
@@ -443,10 +458,13 @@
 
         const onPointerDown = (e) => {
             isDragging = true;
+            lastHoveredBeforeDown = hoveredItem;
             if (hoveredItem !== null) {
                 removeToolTip();
             }
             prevMousePos = { x: e.clientX, y: e.clientY };
+            pointerDownPos = { x: e.clientX, y: e.clientY };
+            pointerDownTime = Date.now();
             velocityX = 0;
             velocityY = 0;
             lastMoveTime = Date.now();
@@ -501,6 +519,9 @@
             if (!isDragging) return;
             isDragging = false;
 
+            const distMoved = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+            const duration = Date.now() - pointerDownTime;
+
             // If stationary for more than 100ms before release, kill flick velocity
             if (Date.now() - lastMoveTime > 100) {
                 velocityX = 0;
@@ -514,6 +535,31 @@
             try {
                 container.releasePointerCapture(e.pointerId);
             } catch (_) {}
+
+            // Detect billboard click (minimal pointer travel and short tap/click duration)
+            if (distMoved < 8 && duration < 500) {
+                let clickedItem = lastHoveredBeforeDown;
+                if (!clickedItem) {
+                    scene.updateMatrixWorld();
+                    raycaster.setFromCamera(mouse, camera);
+                    const sprites = billboards.map((b) => b.sprite).filter(Boolean);
+                    const hits = raycaster.intersectObjects(sprites);
+                    for (const hit of hits) {
+                        const item = hit.object.userData?.item;
+                        if (!item) continue;
+                        item.point.getWorldPosition(tempWorldPos);
+                        tempNormal.copy(tempWorldPos).normalize();
+                        tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+                        if (tempNormal.dot(tempToCam) > 0.15) {
+                            clickedItem = item;
+                            break;
+                        }
+                    }
+                }
+                if (clickedItem && clickedItem.place) {
+                    handlePlaceClick(clickedItem.place);
+                }
+            }
 
             const rect = renderer.domElement.getBoundingClientRect();
             if (
@@ -676,13 +722,17 @@
     class:is-hovering={tooltipVisible && !isDragging}
     bind:this={container}
 >
-    {#if tooltipVisible}
+    {#if tooltipVisible && !(onplaceclick ? false : internalSelectedPlace)}
         <div
             class="tooltip-anchor"
             style="left: {tooltipX}px; top: {tooltipY}px;"
         >
             <ToolTip text={tooltipName} visible={tooltipVisible} />
         </div>
+    {/if}
+
+    {#if !onplaceclick && internalSelectedPlace}
+        <InfoHover place={internalSelectedPlace} onback={() => internalSelectedPlace = null} />
     {/if}
 </div>
 
