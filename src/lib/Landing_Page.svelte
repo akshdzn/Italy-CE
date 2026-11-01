@@ -72,6 +72,7 @@
         position: relative;
         width: 100vw;
         height: 100vh;
+        height: 100dvh;
         background-color: #ffffff;
         overflow: hidden;
         font-family: sans-serif;
@@ -125,7 +126,7 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        z-index: 3;
+        z-index: 4;
     }
 
     .title-row {
@@ -174,7 +175,7 @@
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        z-index: 3;
+        z-index: 4;
     }
 
     .time {
@@ -192,5 +193,107 @@
         opacity: 0.8;
         text-align: right;
         line-height: 1.4;
+    }
+
+    @media (max-width: 768px) {
+        .landscape {
+            height: 38%;
+        }
+
+        .globe-wrapper {
+            width: 100%;
+            height: 62vh;
+            max-height: 520px;
+        }
+
+        .left-top {
+            top: 16px;
+            left: 16px;
+            max-width: calc(100vw - 140px);
+            width: auto;
+            gap: 6px;
+        }
+
+        .title {
+            font-size: 20px;
+        }
+
+        .flag {
+            width: 25px;
+            height: 17px;
+        }
+
+        .quote {
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .instruction {
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .right-top {
+            top: 16px;
+            right: 16px;
+        }
+
+        .time {
+            font-size: 20px;
+        }
+
+        .time-label {
+            font-size: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .landscape {
+            height: 34%;
+        }
+
+        .globe-wrapper {
+            width: 100%;
+            height: 58vh;
+            max-height: 480px;
+        }
+
+        .left-top {
+            top: 12px;
+            left: 12px;
+            max-width: calc(100vw - 110px);
+            gap: 4px;
+        }
+
+        .title {
+            font-size: 17px;
+        }
+
+        .flag {
+            width: 22px;
+            height: 15px;
+        }
+
+        .quote {
+            display: none;
+        }
+
+        .instruction {
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        .right-top {
+            top: 12px;
+            right: 12px;
+        }
+
+        .time {
+            font-size: 17px;
+        }
+
+        .time-label {
+            font-size: 10px;
+        }
     }
 </style>

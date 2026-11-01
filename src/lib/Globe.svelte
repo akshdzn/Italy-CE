@@ -75,7 +75,21 @@
         const height = container.clientHeight || 600;
 
         const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        camera.position.z = 6;
+
+        const updateCameraView = (w, h) => {
+            const aspect = w / h;
+            camera.aspect = aspect;
+            // On portrait / narrow screens (aspect < 1.15), zoom camera back so the sphere diameter (4.0) fits with margin
+            if (aspect < 1.15) {
+                const requiredZ = 4.8 / (aspect * 0.8284);
+                camera.position.z = Math.min(8.8, Math.max(6, requiredZ));
+            } else {
+                camera.position.z = 6;
+            }
+            camera.updateProjectionMatrix();
+        };
+
+        updateCameraView(width, height);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -393,6 +407,7 @@
         let pointerDownPos = { x: 0, y: 0 };
         let pointerDownTime = 0;
         let lastHoveredBeforeDown = null;
+        let lastTapHandledTime = 0;
         let velocityX = 0;
         let velocityY = 0;
         let lastMoveTime = 0;
@@ -400,6 +415,78 @@
         const clock = new THREE.Clock();
 
         const tempProjected = new THREE.Vector3();
+
+        // Helper to accurately resolve which front-facing billboard is at screen (clientX, clientY)
+        const getBillboardAtCoord = (clientX, clientY) => {
+            if (!container || !renderer || !camera) return null;
+            const rect = renderer.domElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return null;
+
+            // 1. Raycast test
+            const ndc = new THREE.Vector2(
+                ((clientX - rect.left) / rect.width) * 2 - 1,
+                -((clientY - rect.top) / rect.height) * 2 + 1
+            );
+
+            scene.updateMatrixWorld();
+            raycaster.setFromCamera(ndc, camera);
+            const sprites = billboards.map((b) => b.sprite).filter(Boolean);
+            const hits = raycaster.intersectObjects(sprites);
+
+            for (const hit of hits) {
+                const item = hit.object.userData?.item;
+                if (!item || !item.point) continue;
+
+                item.point.getWorldPosition(tempWorldPos);
+                tempNormal.copy(tempWorldPos).normalize();
+                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+                if (tempNormal.dot(tempToCam) > 0.15) {
+                    return item;
+                }
+            }
+
+            // 2. 2D Projected Screen Proximity Fallback (essential for touch tap accuracy on mobile)
+            const w = container.clientWidth || rect.width;
+            const h = container.clientHeight || rect.height;
+            const clickRelX = clientX - rect.left;
+            const clickRelY = clientY - rect.top;
+
+            let closestItem = null;
+            let closestDistSq = Infinity;
+
+            for (const item of billboards) {
+                if (!item.sprite || !item.point) continue;
+
+                item.point.getWorldPosition(tempWorldPos);
+                tempNormal.copy(tempWorldPos).normalize();
+                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+                if (tempNormal.dot(tempToCam) <= 0.15) continue;
+
+                tempProjected.copy(tempWorldPos).project(camera);
+                const screenX = ((tempProjected.x + 1) / 2) * w;
+                const screenY = ((-tempProjected.y + 1) / 2) * h;
+
+                const pxHeight = item.targetPxHeight || 100;
+                const pxWidth = pxHeight * (item.aspect || 1.4);
+
+                // Add 16px touch margin around the billboard bounding box
+                const halfW = pxWidth * 0.5 + 16;
+                const halfH = pxHeight * 0.5 + 16;
+
+                const dx = Math.abs(clickRelX - screenX);
+                const dy = Math.abs(clickRelY - screenY);
+
+                if (dx <= halfW && dy <= halfH) {
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < closestDistSq) {
+                        closestDistSq = distSq;
+                        closestItem = item;
+                    }
+                }
+            }
+
+            return closestItem;
+        };
 
         updateTooltipCoords = (item) => {
             if (!item || !item.point || !container) return;
@@ -414,8 +501,8 @@
             const screenY = ((-tempProjected.y + 1) / 2) * h;
 
             const pxHeight = item.targetPxHeight || 100;
-            tooltipX = screenX;
-            tooltipY = screenY - (pxHeight * 0.5) - 6;
+            tooltipX = Math.max(45, Math.min(w - 45, screenX));
+            tooltipY = Math.max(25, screenY - (pxHeight * 0.5) - 6);
         };
 
         const checkHover = () => {
@@ -458,16 +545,27 @@
 
         const onPointerDown = (e) => {
             isDragging = true;
-            lastHoveredBeforeDown = hoveredItem;
-            if (hoveredItem !== null) {
-                removeToolTip();
-            }
             prevMousePos = { x: e.clientX, y: e.clientY };
             pointerDownPos = { x: e.clientX, y: e.clientY };
             pointerDownTime = Date.now();
             velocityX = 0;
             velocityY = 0;
             lastMoveTime = Date.now();
+
+            // Resolve billboard under touch/cursor immediately on pointerdown
+            lastHoveredBeforeDown = getBillboardAtCoord(e.clientX, e.clientY);
+
+            if (hoveredItem !== null) {
+                removeToolTip();
+            }
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                mouseInside = true;
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            }
+
             try {
                 container.setPointerCapture(e.pointerId);
             } catch (_) {}
@@ -519,7 +617,10 @@
             if (!isDragging) return;
             isDragging = false;
 
-            const distMoved = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+            const clientX = (e.clientX !== undefined && e.clientX !== 0) ? e.clientX : pointerDownPos.x;
+            const clientY = (e.clientY !== undefined && e.clientY !== 0) ? e.clientY : pointerDownPos.y;
+
+            const distMoved = Math.hypot(clientX - pointerDownPos.x, clientY - pointerDownPos.y);
             const duration = Date.now() - pointerDownTime;
 
             // If stationary for more than 100ms before release, kill flick velocity
@@ -536,42 +637,49 @@
                 container.releasePointerCapture(e.pointerId);
             } catch (_) {}
 
-            // Detect billboard click (minimal pointer travel and short tap/click duration)
-            if (distMoved < 8 && duration < 500) {
+            const isTouch = e.pointerType === 'touch';
+            const tapMaxDist = isTouch ? 25 : 10;
+            const tapMaxTime = isTouch ? 700 : 500;
+
+            // Detect billboard click / mobile tap
+            if (distMoved <= tapMaxDist && duration <= tapMaxTime) {
                 let clickedItem = lastHoveredBeforeDown;
                 if (!clickedItem) {
-                    scene.updateMatrixWorld();
-                    raycaster.setFromCamera(mouse, camera);
-                    const sprites = billboards.map((b) => b.sprite).filter(Boolean);
-                    const hits = raycaster.intersectObjects(sprites);
-                    for (const hit of hits) {
-                        const item = hit.object.userData?.item;
-                        if (!item) continue;
-                        item.point.getWorldPosition(tempWorldPos);
-                        tempNormal.copy(tempWorldPos).normalize();
-                        tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
-                        if (tempNormal.dot(tempToCam) > 0.15) {
-                            clickedItem = item;
-                            break;
-                        }
-                    }
+                    clickedItem = getBillboardAtCoord(clientX, clientY);
+                }
+                if (!clickedItem) {
+                    clickedItem = getBillboardAtCoord(pointerDownPos.x, pointerDownPos.y);
                 }
                 if (clickedItem && clickedItem.place) {
+                    lastTapHandledTime = Date.now();
                     handlePlaceClick(clickedItem.place);
+                    return;
                 }
             }
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            if (
-                e.clientX >= rect.left &&
-                e.clientX <= rect.right &&
-                e.clientY >= rect.top &&
-                e.clientY <= rect.bottom
-            ) {
-                mouseInside = true;
-                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                checkHover();
+            if (!isTouch) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                if (
+                    clientX >= rect.left &&
+                    clientX <= rect.right &&
+                    clientY >= rect.top &&
+                    clientY <= rect.bottom
+                ) {
+                    mouseInside = true;
+                    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+                    checkHover();
+                }
+            }
+        };
+
+        const onClick = (e) => {
+            // If already handled by pointerup in the last 400ms, ignore synthetic click
+            if (Date.now() - lastTapHandledTime < 400) return;
+            const hit = getBillboardAtCoord(e.clientX, e.clientY);
+            if (hit && hit.place) {
+                lastTapHandledTime = Date.now();
+                handlePlaceClick(hit.place);
             }
         };
 
@@ -590,14 +698,14 @@
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp);
         container.addEventListener('pointerleave', onPointerLeave);
+        container.addEventListener('click', onClick);
 
         // Handle resizing
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { width: w, height: h } = entry.contentRect;
                 if (w > 0 && h > 0) {
-                    camera.aspect = w / h;
-                    camera.updateProjectionMatrix();
+                    updateCameraView(w, h);
                     renderer.setSize(w, h, false);
                 }
             }
@@ -640,8 +748,10 @@
                 // Interpolate from 0.0 (backface) to 1.0 (front face)
                 const t = THREE.MathUtils.clamp((dot + 1.0) * 0.5, 0.0, 1.0);
 
-                // Vary size: 20px on backface, full (~200px) on front face
-                const targetPxHeight = THREE.MathUtils.lerp(20, 200, t);
+                // Responsive billboard size scaling: up to 200px on desktop, scaling down on mobile
+                const maxPx = Math.min(200, Math.max(90, Math.min(container.clientWidth || width, viewHeight) * 0.28));
+                const minPx = Math.max(14, maxPx * 0.12);
+                const targetPxHeight = THREE.MathUtils.lerp(minPx, maxPx, t);
                 item.targetPxHeight = targetPxHeight;
 
                 // Vary opacity: 10% on backface, 100% on front face
@@ -699,6 +809,7 @@
             window.removeEventListener('pointerup', onPointerUp);
             window.removeEventListener('pointercancel', onPointerUp);
             container.removeEventListener('pointerleave', onPointerLeave);
+            container.removeEventListener('click', onClick);
 
             updateTooltipCoords = null;
             removeToolTip();
@@ -740,7 +851,7 @@
     .globe-container {
         width: 100%;
         height: 100%;
-        min-height: 400px;
+        min-height: 280px;
         position: relative;
         display: flex;
         align-items: center;

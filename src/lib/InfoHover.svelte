@@ -43,6 +43,10 @@
                             src={placeImage}
                             alt={placeName}
                             draggable="false"
+                            loading="eager"
+                            decoding="async"
+                            referrerpolicy="no-referrer"
+                            crossorigin="anonymous"
                         />
                     {/if}
                 </div>
@@ -210,13 +214,19 @@
         .info-hover-root {
             position: fixed;
             top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: calc(100% - 32px);
+            max-width: 440px;
             height: auto;
-            max-height: 92vh;
+            max-height: 86vh;
             overflow-y: auto;
-            padding: 40px 24px 24px;
+            -webkit-overflow-scrolling: touch;
+            padding: 48px 20px 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
 
         .image-container {
@@ -225,32 +235,62 @@
             top: auto;
             transform: none;
             width: 100%;
-            max-width: 380px;
-            height: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            margin: 4px 0 8px;
+        }
+
+        .image-rotation {
+            flex: 0 1 320px;
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            justify-content: center;
+            transform: rotate(-2.5deg);
         }
 
         .image-box {
+            position: relative;
             width: 100%;
-            height: 214px;
+            max-width: 320px;
+            height: 180px;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .image-box img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .info-bullets {
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
             width: 100%;
         }
 
         .bullet-text {
             max-width: 100%;
             min-width: auto;
-            font-size: 18px;
+            font-size: 16px;
+            line-height: 1.45;
+            text-align: left;
         }
 
         .back-btn {
-            top: 10px;
-            right: 20px;
+            top: 12px;
+            right: 16px;
             color: #ffffff;
-            font-size: 16px;
+            font-size: 15px;
+            padding: 6px 12px;
         }
     }
 </style>

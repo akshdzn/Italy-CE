@@ -60,6 +60,7 @@
         user-select: none;
         outline: none;
         display: block;
+        pointer-events: none;
         transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
@@ -85,6 +86,7 @@
         justify-content: center;
         box-sizing: border-box;
         z-index: 2;
+        pointer-events: auto;
     }
 
     .cta-text {
@@ -148,5 +150,33 @@
         object-fit: contain;
         display: block;
         pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+        .cta-button {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+
+        .cta-button:hover {
+            transform: translate(-50%, -50%) scale(0.94);
+        }
+
+        .cta-button:active {
+            transform: translate(-50%, -50%) scale(0.86);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .cta-button {
+            transform: translate(-50%, -50%) scale(0.82);
+        }
+
+        .cta-button:hover {
+            transform: translate(-50%, -50%) scale(0.86);
+        }
+
+        .cta-button:active {
+            transform: translate(-50%, -50%) scale(0.78);
+        }
     }
 </style>
