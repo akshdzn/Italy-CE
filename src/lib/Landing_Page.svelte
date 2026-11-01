@@ -1,6 +1,7 @@
 <script>
     import Globe from './Globe.svelte';
     import InfoHover from './InfoHover.svelte';
+    import CTA from './CTA.svelte';
 
     let selectedPlace = $state(null);
 
@@ -37,6 +38,10 @@
             <Globe onplaceclick={handlePlaceClick} />
         </div>
     </div>
+
+    {#if !selectedPlace}
+        <CTA />
+    {/if}
 
     {#if selectedPlace}
         <InfoHover place={selectedPlace} onback={handleBack} />
