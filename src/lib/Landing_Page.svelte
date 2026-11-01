@@ -11,6 +11,19 @@
     function handleBack() {
         selectedPlace = null;
     }
+
+    let time = $state();
+    function updateItalyTime() {
+      time = new Date().toLocaleTimeString("en-GB", {
+        timeZone: "Europe/Rome",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    }
+
+    updateItalyTime();               // show immediately
+    setInterval(updateItalyTime, 1000); // refresh every second
 </script>
 
 <div class="landing-page">
@@ -39,7 +52,7 @@
     </div>
 
     <div class="right-top">
-        <span class="time">12:30 PM</span>
+        <span class="time">{time}</span>
         <span class="time-label">Italian Time</span>
     </div>
 </div>

@@ -8,9 +8,9 @@
     // Controls for the globe appearance (configure directly here or pass as props)
     let {
         globeColor = "#e0e0e0",
-        wiggleSize = 0.2,        // Controls the amplitude / size of the squiggles (0 = smooth, 1.0 = standard handdrawn, >1 = larger wiggles)
-        wiggleTurbulence = 1.0,  // Controls the frequency / turbulence of the squiggles (higher = denser, shakier squiggles)
-        wiggleSpeed = 1.0,       // Controls the speed of the hand-drawn line boil / shake animation (0 = static sketch)
+        wiggleSize = 0.3,        // Controls the amplitude / size of the squiggles (0 = smooth, 1.0 = standard handdrawn, >1 = larger wiggles)
+        wiggleTurbulence = 1.6,  // Controls the frequency / turbulence of the squiggles (higher = denser, shakier squiggles)
+        wiggleSpeed = 0.5,       // Controls the speed of the hand-drawn line boil / shake animation (0 = static sketch)
         onplaceclick
     } = $props();
 
