@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import * as THREE from 'three';
     import italyData from '../italy.json';
+    import ToolTip from './ToolTip.svelte';
 
     // Controls for the globe appearance (configure directly here or pass as props)
     let {
@@ -13,6 +14,34 @@
 
     let container = $state();
     let lineMaterial;
+
+    // Tooltip state
+    let tooltipVisible = $state(false);
+    let tooltipName = $state('');
+    let tooltipX = $state(0);
+    let tooltipY = $state(0);
+    let isDragging = $state(false);
+
+    let hoveredItem = null;
+    let billboards = [];
+    let updateTooltipCoords = null;
+
+    export function callToolTip(name) {
+        tooltipName = name;
+        tooltipVisible = true;
+        if (!hoveredItem || hoveredItem.place?.name !== name) {
+            hoveredItem = billboards.find((b) => b.place?.name === name) || null;
+        }
+        if (hoveredItem && updateTooltipCoords) {
+            updateTooltipCoords(hoveredItem);
+        }
+    }
+
+    export function removeToolTip() {
+        tooltipVisible = false;
+        tooltipName = '';
+        hoveredItem = null;
+    }
 
     // Reactively update shader uniforms when variables change
     $effect(() => {
@@ -294,7 +323,7 @@
             randomSpots.push(candidate);
         }
 
-        const billboards = [];
+        billboards = [];
 
         italyData.forEach((place, index) => {
             // Invisible anchor point attached to the rotating globe
@@ -303,11 +332,13 @@
             globeGroup.add(point);
 
             const item = {
+                place,
                 point,
                 sprite: null,
                 texture: null,
                 material: null,
-                aspect: 1.4 // sensible default until image loads
+                aspect: 1.4, // sensible default until image loads
+                targetPxHeight: 100
             };
 
             if (place.globeImage) {
@@ -330,6 +361,7 @@
                 });
 
                 const sprite = new THREE.Sprite(material);
+                sprite.userData = { place, item, index };
                 point.add(sprite);
 
                 item.sprite = sprite;
@@ -340,8 +372,11 @@
             billboards.push(item);
         });
 
-        // Interaction state
-        let isDragging = false;
+        // Raycasting and interaction state
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(-9999, -9999);
+        let mouseInside = false;
+
         let prevMousePos = { x: 0, y: 0 };
         let velocityX = 0;
         let velocityY = 0;
@@ -349,8 +384,68 @@
         const idleSpeed = 0.002;
         const clock = new THREE.Clock();
 
+        const tempProjected = new THREE.Vector3();
+
+        updateTooltipCoords = (item) => {
+            if (!item || !item.point || !container) return;
+
+            item.point.getWorldPosition(tempWorldPos);
+            tempProjected.copy(tempWorldPos).project(camera);
+
+            const w = container.clientWidth || width;
+            const h = container.clientHeight || height;
+
+            const screenX = ((tempProjected.x + 1) / 2) * w;
+            const screenY = ((-tempProjected.y + 1) / 2) * h;
+
+            const pxHeight = item.targetPxHeight || 100;
+            tooltipX = screenX;
+            tooltipY = screenY - (pxHeight * 0.5) - 6;
+        };
+
+        const checkHover = () => {
+            if (!mouseInside || isDragging) return;
+
+            scene.updateMatrixWorld();
+            raycaster.setFromCamera(mouse, camera);
+            const sprites = billboards.map((b) => b.sprite).filter(Boolean);
+            const hits = raycaster.intersectObjects(sprites);
+
+            let hitItem = null;
+            for (const hit of hits) {
+                const item = hit.object.userData?.item;
+                if (!item) continue;
+
+                item.point.getWorldPosition(tempWorldPos);
+                tempNormal.copy(tempWorldPos).normalize();
+                tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+                const dot = tempNormal.dot(tempToCam);
+
+                if (dot > 0.15) {
+                    hitItem = item;
+                    break;
+                }
+            }
+
+            if (hitItem) {
+                if (hoveredItem !== hitItem) {
+                    hoveredItem = hitItem;
+                    callToolTip(hitItem.place.name);
+                } else {
+                    updateTooltipCoords(hitItem);
+                }
+            } else {
+                if (hoveredItem !== null) {
+                    removeToolTip();
+                }
+            }
+        };
+
         const onPointerDown = (e) => {
             isDragging = true;
+            if (hoveredItem !== null) {
+                removeToolTip();
+            }
             prevMousePos = { x: e.clientX, y: e.clientY };
             velocityX = 0;
             velocityY = 0;
@@ -361,24 +456,45 @@
         };
 
         const onPointerMove = (e) => {
-            if (!isDragging) return;
+            if (isDragging) {
+                const deltaX = e.clientX - prevMousePos.x;
+                const deltaY = e.clientY - prevMousePos.y;
 
-            const deltaX = e.clientX - prevMousePos.x;
-            const deltaY = e.clientY - prevMousePos.y;
+                // Rotate globe directly (upright polar spin on Y, tilt on X)
+                globeGroup.rotation.y += deltaX * 0.005;
+                globeGroup.rotation.x += deltaY * 0.005;
 
-            // Rotate globe directly (upright polar spin on Y, tilt on X)
-            globeGroup.rotation.y += deltaX * 0.005;
-            globeGroup.rotation.x += deltaY * 0.005;
+                // Clamp vertical tilt
+                globeGroup.rotation.x = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, globeGroup.rotation.x));
 
-            // Clamp vertical tilt
-            globeGroup.rotation.x = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, globeGroup.rotation.x));
+                // Record velocity
+                velocityX = deltaX * 0.005;
+                velocityY = deltaY * 0.005;
 
-            // Record velocity
-            velocityX = deltaX * 0.005;
-            velocityY = deltaY * 0.005;
-
-            prevMousePos = { x: e.clientX, y: e.clientY };
-            lastMoveTime = Date.now();
+                prevMousePos = { x: e.clientX, y: e.clientY };
+                lastMoveTime = Date.now();
+            } else {
+                const rect = renderer.domElement.getBoundingClientRect();
+                if (
+                    e.clientX >= rect.left &&
+                    e.clientX <= rect.right &&
+                    e.clientY >= rect.top &&
+                    e.clientY <= rect.bottom
+                ) {
+                    mouseInside = true;
+                    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                    checkHover();
+                } else {
+                    if (mouseInside) {
+                        mouseInside = false;
+                        mouse.set(-9999, -9999);
+                        if (hoveredItem !== null) {
+                            removeToolTip();
+                        }
+                    }
+                }
+            }
         };
 
         const onPointerUp = (e) => {
@@ -398,12 +514,36 @@
             try {
                 container.releasePointerCapture(e.pointerId);
             } catch (_) {}
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            if (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            ) {
+                mouseInside = true;
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                checkHover();
+            }
+        };
+
+        const onPointerLeave = () => {
+            if (!isDragging) {
+                mouseInside = false;
+                mouse.set(-9999, -9999);
+                if (hoveredItem !== null) {
+                    removeToolTip();
+                }
+            }
         };
 
         container.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp);
+        container.addEventListener('pointerleave', onPointerLeave);
 
         // Handle resizing
         const resizeObserver = new ResizeObserver((entries) => {
@@ -456,6 +596,7 @@
 
                 // Vary size: 20px on backface, full (~200px) on front face
                 const targetPxHeight = THREE.MathUtils.lerp(20, 200, t);
+                item.targetPxHeight = targetPxHeight;
 
                 // Vary opacity: 10% on backface, 100% on front face
                 item.material.opacity = THREE.MathUtils.lerp(0, 1.0, t);
@@ -483,6 +624,19 @@
 
                 // Keep tilt clamped
                 globeGroup.rotation.x = Math.max(-Math.PI * 0.35, Math.min(Math.PI * 0.35, globeGroup.rotation.x));
+
+                if (mouseInside) {
+                    checkHover();
+                } else if (tooltipVisible && hoveredItem) {
+                    hoveredItem.point.getWorldPosition(tempWorldPos);
+                    tempNormal.copy(tempWorldPos).normalize();
+                    tempToCam.copy(camera.position).sub(tempWorldPos).normalize();
+                    if (tempNormal.dot(tempToCam) > 0.15) {
+                        updateTooltipCoords(hoveredItem);
+                    } else {
+                        removeToolTip();
+                    }
+                }
             }
 
             renderer.render(scene, camera);
@@ -498,6 +652,10 @@
             window.removeEventListener('pointermove', onPointerMove);
             window.removeEventListener('pointerup', onPointerUp);
             window.removeEventListener('pointercancel', onPointerUp);
+            container.removeEventListener('pointerleave', onPointerLeave);
+
+            updateTooltipCoords = null;
+            removeToolTip();
 
             geometry.dispose();
             lineMaterial.dispose();
@@ -513,7 +671,20 @@
     });
 </script>
 
-<div class="globe-container" bind:this={container}></div>
+<div
+    class="globe-container"
+    class:is-hovering={tooltipVisible && !isDragging}
+    bind:this={container}
+>
+    {#if tooltipVisible}
+        <div
+            class="tooltip-anchor"
+            style="left: {tooltipX}px; top: {tooltipY}px;"
+        >
+            <ToolTip text={tooltipName} visible={tooltipVisible} />
+        </div>
+    {/if}
+</div>
 
 <style>
     .globe-container {
@@ -531,6 +702,17 @@
 
     .globe-container:active {
         cursor: grabbing;
+    }
+
+    .globe-container.is-hovering {
+        cursor: pointer;
+    }
+
+    .tooltip-anchor {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        pointer-events: none;
+        z-index: 20;
     }
 
     :global(.globe-container canvas) {

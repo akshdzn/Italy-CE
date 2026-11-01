@@ -1,5 +1,5 @@
 - [x] Globe Base + Images
-- [ ] Tooltip and hover interaction for globe images
+- [x] Tooltip and hover interaction for globe images
 - [ ] Place pages 
 - [ ] Stamp system
 - [ ] CTA button
