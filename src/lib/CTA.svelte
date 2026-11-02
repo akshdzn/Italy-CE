@@ -33,7 +33,9 @@
     </div>
 
     <!-- Center Pill Button -->
-    <div class="cta-pill" data-node-id="46:29">
+    <div class="cta-pill" data-node-id="46:29" onclick={()=>{
+        alert("Send a query to mahadevbiju08@gmail.com or akshdzn@gmail.com")
+    }}>
         <span class="cta-text" data-node-id="46:19">Book a Call</span>
     </div>
 
